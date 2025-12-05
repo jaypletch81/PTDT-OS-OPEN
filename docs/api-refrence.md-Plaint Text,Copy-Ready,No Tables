@@ -1,0 +1,115 @@
+PTDT-OS API Reference (v3.0)
+Public Standard · MIT License · Vendor-Neutral Interface
+This document defines the entire public API surface for PTDT-OS.
+Any system—robotics, vehicles, AI clusters, medical devices, quantum processors, or brain-interface hardware—can integrate with PTDT-OS by implementing the interfaces below.
+The API is intentionally minimal, stable, and backward-compatible across major versions.
+1. The Domain Interface
+Every subsystem must expose exactly one function returning a GoldenReport.
+This function is typically named:
+compute_delta()
+or:
+step()
+but the name does not matter—only the output structure matters.
+GoldenReport Fields
+Each domain must return a GoldenReport with the following fields:
+domain
+A short identifier string (e.g., “AI”, “BRAIN”, “ROAD”, “QUANTUM”).
+delta
+Divergence level, normalized to 0–1.
+Measures how far the subsystem has drifted from stable human-aligned dynamics.
+delta_rate
+Rate of change (dΔ/dt).
+Positive values indicate increasing divergence; negative values indicate recovery.
+state
+One of: SAFE, CAUTION, DANGER, CATASTROPHIC.
+throttle
+Recommended reduction in system autonomy (0–1).
+1.0 = full control, 0.0 = complete halt.
+timestampkernel.register("AI", create_ai_adapter())
+Epoch seconds of when the report was generated.
+signature
+Ed25519 signature over the report contents (added automatically by the Kernel).
+prev_hash
+Merkle chain pointer for cryptographic auditability.
+report_hash
+Hash of the report payload (BLAKE2b).
+This is the universal shape recognized by PTDT-OS.
+2. Registering a Domain
+Domains register themselves with the PTDT-OS Kernel using:
+kernel.register("DOMAIN_NAME", generator_function)
+Example:
+Any subsystem can participate as long as it provides a function returning a valid GoldenReport.
+3. Kernel Step Call
+The Kernel performs a full safety evaluation each time:
+kernel.step()
+This returns a dictionary with:
+
+
+
+global_delta
+Maximum delta across all domains.
+global_rate
+Maximum rate of divergence across all domains.
+global_state
+Worst safety state among all domains.
+global_throttle
+Minimum throttle recommended (the most restrictive wins).
+veto
+Boolean indicating whether a global veto has been executed.
+chain_root
+Current Merkle root of the signed report chain.
+public_key
+Kernel public key for verification.
+domains
+Dictionary of each domain’s simplified status (for UIs and logs).
+4. Safety Transition Rules
+This is the official state machine:
+SAFE → CAUTION
+Triggered when:
+delta ≥ SAFE threshold
+OR delta_rate exceeds CAUTION threshold
+CAUTION → DANGER
+Triggered when:
+delta ≥ danger threshold
+OR delta_rate accelerating rapidly
+DANGER → CATASTROPHIC
+Triggered when:
+delta ≥ 0.95
+OR delta_rate ≥ 0.60
+CATASTROPHIC → VETO
+The Kernel executes an irreversible global veto, halting all connected systems.
+5. Global Veto API
+A domain or Kernel can trigger a global veto:
+kernel.veto_all("Reason")
+Domain-triggered veto
+(Not recommended except for certified domains)
+return GoldenReport
+(domain="AI", delta=1.0, delta_rate=1.0,
+state=SafetyState.CATASTROPHIC, throttle=0.0)
+6. Cryptographic Guarantees
+All GoldenReport objects are signed and hashed when inserted into the chain.
+The public key is exposed via status["public_key"] Consumers may verify signatures using any Ed25519 library.
+This system guarantees:
+immutability
+event ordering
+regulatory auditability
+tamper-evident logs
+7. Minimal Implementation Example
+def create_robot_adapter():
+return lambda: GoldenReport(
+domain="ROBOT",
+delta=0.22,
+delta_rate=0.04,
+state=SafetyState.SAFE,
+throttle=1.0
+) Then: kernel.register("ROBOT", create_robot_adapter()) No ML model required.
+No hardware assumptions.
+Any vendor can adopt this in <10 lines of code.
+9. Compatibility Policy
+PTDT-OS follows strict versioning rules:
+Domain APIs remain stable across all 3.x releases.
+Kernel safety thresholds may evolve but domain interface does not.
+No vendor can “fork” a private incompatible version and still claim compliance.
+This ensures a global, vendor-neutral safety ecosystem.
+
+

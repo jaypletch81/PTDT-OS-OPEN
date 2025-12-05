@@ -169,10 +169,9 @@ PTDT-OS is not an algorithm — it's a safety foundation.
 
 PTDT-OS is released under the **MIT License**:
 
-- Free for commercial use  
-- Free for modification  
-- Free for private forks  
-- No obligations  
+-Production Ready for commercial use  
+- Production Ready for modification  
+- Production Ready for private forks    
 - Intended to become a global safety standard  
 
 ---

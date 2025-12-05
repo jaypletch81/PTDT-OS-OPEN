@@ -1,0 +1,101 @@
+kernel.md — The PTDT-OS Kernel Specification
+This document explains the beating heart of PTDT-OS:
+the Golden Kernel, how it makes decisions, how it processes reports, and how developers must integrate with it.
+PTDT-OS Kernel Specification (kernel.md)
+1. Purpose of the Kernel
+The PTDT-OS Kernel is the universal safety coordinator responsible for:
+collecting divergence reports from multiple domains
+computing global safety signals
+evaluating delta, delta-rate, and safety thresholds
+issuing throttle commands
+triggering irreversible global veto when needed
+maintaining a cryptographically provable event chain
+Every domain (AI, Robotics, Brain, Road, Quantum, etc.) plugs into the Kernel through a simple reporting API.
+The Kernel is domain-agnostic and does not rely on any proprietary SDKs.
+2. Core Responsibilities
+2.1 Aggregate Divergence
+The Kernel receives multiple GoldenReport objects per cycle, each containing:
+delta (0.0–1.0)
+delta-rate
+local safety state
+recommended throttle
+timestamp
+cryptographic signature (v3.0+)
+It selects the worst domain based on:
+highest delta
+highest delta-rate
+highest severity state (SAFE < CAUTION < DANGER < CATASTROPHIC)
+This worst-case value becomes the global state.
+This ensures no domain can “hide” dangerous signals behind others.
+3. Global State Machine
+PTDT-OS computes the system-wide safety state:
+SAFE — normal conditions
+CAUTION — emerging instability
+DANGER — severe divergence, throttling required
+CATASTROPHIC — global veto
+The Kernel ensures deterministic behavior:
+If any domain enters CATASTROPHIC or crosses delta/delta-rate thresholds, all systems must comply.
+4. Throttle Computation
+Throttle is derived from the minimum of all domain throttles.
+Reason:
+If even one subsystem is unstable, reducing global speed prevents cascading failures.
+Throttle is a continuous value from 0.0 to 1.0:
+1.0 = full speed
+0.5 = constrained
+0.1 = emergency limitation
+0.0 = halt
+Throttle output is intended to be connected to:
+robot motion limits
+vehicle acceleration controllers
+AI training step regulators
+quantum circuit depths
+simulation speeds
+any adjustable operational rate
+5. Cryptographic Provenance (v3.0+)
+Every report added to history is:
+Hashed with a BLAKE2b digest (32 bytes)
+Signed with Ed25519 hardware-bound private key
+Chained into a Merkle-like rolling root
+This provides:
+tamper-evidence
+traceable audit logs
+post-incident reconstruction
+regulator-ready proofs
+manufacturer liability protection
+Even if a subsystem is compromised, the Kernel log cannot be falsified.
+6. Merkle Chain Operation
+Each report includes:
+prev_hash
+report_hash
+signature
+new_root = blake2b(prev_root + report_hash) 
+The chain never resets unless the operator performs a secure wipe (factory reset)
+The Kernel does not care what hardware, sensors, or models produced these values.
+This loose coupling allows:
+robotics labs
+vehicle OEMs
+AI companies
+neurotech firms
+quantum computing teams
+to integrate without sharing proprietary code.
+10. Why This Kernel Model Works
+This design offers:
+Universality across industries
+Extreme simplicity in integration
+Strong cryptographic foundations
+Compatibility with safety regulators
+Future-proof structure for interoperable AGI-era systems
+The Kernel is intentionally minimalist because complexity is a safety risk.
+PTDT-OS 3.0 is built to be:
+reliable
+explainable
+verifiable
+enforceable
+compatible with ultra-fast systems
+It is the core immunity layer for future civilization-scale technological systems.
+
+
+
+
+
+The chain is updated:
